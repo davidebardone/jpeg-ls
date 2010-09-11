@@ -73,6 +73,22 @@ void append_bit(uint8 bit)
 	return;
 }
 
+uint8 read_bit()
+{
+	uint8 bit;	
+
+	if(bs.byte_bits==0)
+	{
+		fread(&bs.buffer,1,1,bs.bitstream_file);
+		bs.byte_bits = 8;
+	}
+
+	bit = bs.buffer | bytemask[bs.byte_bits];
+	bs.byte_bits--;
+
+	return bit;
+}
+
 void append_bits(uint32 value, uint8 bits)
 {
 	while(bits > 0)

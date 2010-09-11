@@ -24,5 +24,6 @@
 #include "type_defs.h"
 
 void limited_length_Golomb_encode(uint32 MErrval, uint8 k, uint8 LIMIT, uint8 qbpp);
+uint32 limited_length_Golomb_decode(uint8 k, uint8 LIMIT, uint8 qbpp);
 
 #endif

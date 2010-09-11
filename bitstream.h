@@ -31,9 +31,12 @@ struct bitstream{
 
 void init_bitstream(char* filename, char mode);
 void end_bitstream();
+
 void append_bit(uint8 bit);
 void append_bits(uint32 value, uint8 n_bits);
 void append_byte(uint8 byte);
 void append_word(uint16 word);
+
+uint8 read_bit();
 
 #endif

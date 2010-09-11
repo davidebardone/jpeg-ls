@@ -65,7 +65,10 @@ params_struct coding_parameters(int argc, char* argv[])
 			{
 				strcpy(params.input_file, argv[1]);
 				strcpy(fname, argv[1]);
-				strcpy(params.output_file, strcat(strtok(fname,"."),".jls"));
+				if (params.decoding_flag == false)	
+					strcpy(params.output_file, strcat(strtok(fname,"."),".jls"));
+				else
+					strcpy(params.output_file, strcat(strtok(fname,"."),".ppm"));
 			}
 			else
 			{
