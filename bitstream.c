@@ -50,6 +50,7 @@ void init_bitstream(char* filename, char mode)
 void end_bitstream()
 {
 	fwrite(&bs.buffer,1,1,bs.bitstream_file);
+	append_bits(0xffd9, 16);			// End Of Image (EOI) marker
 	fclose(bs.bitstream_file);
 	printf("%d\n", bs.tot_bits);
 	return;
@@ -73,22 +74,6 @@ void append_bit(uint8 bit)
 	return;
 }
 
-uint8 read_bit()
-{
-	uint8 bit;	
-
-	if(bs.byte_bits==0)
-	{
-		fread(&bs.buffer,1,1,bs.bitstream_file);
-		bs.byte_bits = 8;
-	}
-
-	bit = bs.buffer | bytemask[bs.byte_bits];
-	bs.byte_bits--;
-
-	return bit;
-}
-
 void append_bits(uint32 value, uint8 bits)
 {
 	while(bits > 0)
@@ -98,7 +83,62 @@ void append_bits(uint32 value, uint8 bits)
 	}
 }
 
-void append_byte(uint8 byte);
-void append_word(uint16 word);
+uint8 read_bit()
+{
+	uint8 bit;	
+
+	if(bs.byte_bits==0)
+	{
+		if(fread(&bs.buffer,1,1,bs.bitstream_file)<1)
+		{
+			fprintf(stderr, "Unexpected end of file");		
+			exit(EXIT_FAILURE);
+		}
+		bs.byte_bits = 8;
+	}
+
+	bit = bs.buffer | bytemask[bs.byte_bits];
+	bs.byte_bits--;
+
+	return bit;
+}
+
+void write_header(params_struct params, image_data* im_data)
+{
+	uint8 comp;
+
+	append_bits(0xffd8, 16);			// Start Of Image (SOI) marker
+	append_bits(0xfff7, 16);			// Start Of JPEG-LS frame (SOF55) marker
+
+	append_bits(2+6+3*im_data->n_comp, 16);		// Length of marker segment
+	append_bits(log2(params.MAXVAL + 1), 8);	// Precision (P)
+
+	append_bits(im_data->height, 16);		// Number of lines (Y)
+	append_bits(im_data->width, 16);		// Number of columns (X)
+
+	append_bits(im_data->n_comp, 8);		// Number of components (Nf)
+
+	for(comp=0;comp<im_data->n_comp;comp++)
+	{
+		append_bits(comp+1, 8);			// Component ID
+		append_bits(0x11, 8);			// Sub-sampling H=1 V=1
+		append_bits(0x0, 0);			// Tq	
+	}
+
+	append_bits(0xffda, 16);			// Start Of Scan (SOS) marker
+	append_bits(3+3+2*im_data->n_comp, 16);		// Length of marker segment
+	append_bits(im_data->n_comp, 8);		// Number of components for this scan (Ns)
+	
+	for(comp=0;comp<im_data->n_comp;comp++)
+	{
+		append_bits(comp+1, 8);			// Component ID
+		append_bits(0x00, 8);			// Mapping table index (0 = no mapping table)
+	}
+
+	append_bits(params.NEAR, 8);			// Near-lossless maximum error
+	append_bits(0x00, 8);				// ILV (0 = no interleave)
+	append_bits(0x00, 8);				// Ai Ah (0 = no point transform)
+
+}
 
 

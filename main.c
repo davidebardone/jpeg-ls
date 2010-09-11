@@ -128,6 +128,9 @@ int main(int argc, char* argv[])
 				fprintf(stdout, "\tMAXVAL\t\t%d\n\tNEAR\t\t%d\n\tT1\t\t%d\n\tT2\t\t%d\n\tT3\t\t%d\n\tRESET\t\t%d\n",
 				params.MAXVAL, params.NEAR, params.T1, params.T2, params.T3, params.RESET);
 		}
+
+		write_header(params, im_data);
+
 	}
 	else
 	{
@@ -342,14 +345,31 @@ int main(int argc, char* argv[])
 
 						if((params.NEAR==0)&&(k==0)&&(2*B[Q]<=-N[Q]))
 							if(MErrval%2==0)
-								Errval = (MErrval/(-2))-1;
+								Errval = -(MErrval / 2) - 1;
 							else
-								Errval = (MErrval - 1)/2;
+								Errval = (MErrval - 1) / 2;
 						else
 							if(MErrval%2==0)
-								Errval = MErrval/2;
+								Errval = MErrval / 2;
 							else
-								Errval = (MErrval+1)/(-2);
+								Errval = -(MErrval + 1) / 2;
+
+						Errval = Errval * (2*params.NEAR + 1);
+
+						if(SIGN==-1)
+							Errval = -Errval;
+
+						Rx = (Errval + Px) % ( RANGE*(2*params.NEAR+1) );
+
+						if( Rx < -params.NEAR)
+							Rx = Rx + RANGE*(2*params.NEAR+1);
+						else if( Rx > params.MAXVAL + params.NEAR)
+							Rx = Rx - RANGE*(2*params.NEAR+1);
+
+						if( Rx<0 )
+							Rx = 0;
+						else if( Rx>params.MAXVAL)
+							Rx = params.MAXVAL;
 
 
 					}
@@ -393,127 +413,142 @@ int main(int argc, char* argv[])
 				}
 				else	// run mode
 				{
-					/* A.7.1 Run scanning and run-length coding */
-			
-					RUNval = Ra;
-					RUNcnt = 0;
-					while(abs(Ix - RUNval) <= params.NEAR)
+					if(params.decoding_flag == false) // encoding
 					{
-						RUNcnt += 1;
-						Rx = RUNval;
-						if(col == (im_data->width-1))
-							break;
-						else
+
+						/* A.7.1 Run scanning and run-length coding */
+			
+						RUNval = Ra;
+						RUNcnt = 0;
+						while(abs(Ix - RUNval) <= params.NEAR)
 						{
-							col++;
-							Ix = im_data->image[comp][row][col];
+							RUNcnt += 1;
+							Rx = RUNval;
+							if(col == (im_data->width-1))
+								break;
+							else
+							{
+								col++;
+								Ix = im_data->image[comp][row][col];
+							}
+						}
+
+						/* A.7.1.2 Run-length coding */
+
+						while(RUNcnt >= (1<<J[RUNindex]))
+						{
+							append_bit(1);
+							RUNcnt -= (1<<J[RUNindex]);
+							if(RUNindex<31)
+								RUNindex += 1;
+						}
+
+						RUNindex_val = RUNindex;
+
+						if(abs(Ix - RUNval) > params.NEAR)
+						{
+							append_bit(0);
+							append_bits(RUNcnt,J[RUNindex]);
+							if(RUNindex > 0)
+								RUNindex -= 1;
+						}
+						else if(RUNcnt>0)
+							append_bit(1);
+
+						/* A.7.2 Run interruption sample encoding */
+
+						// index computation
+						if(abs(Ra - Rb) <= params.NEAR)
+							RItype = 1;
+						else
+							RItype = 0;
+	
+						// prediction error for a run interruption sample
+						if(RItype == 1)
+							Px = Ra;
+						else
+							Px = Rb;
+						Errval = Ix - Px;
+
+						// error computation for a run interruption sample
+						if((RItype == 0) && (Ra > Rb))
+						{
+							Errval = -Errval;
+							SIGN = -1;
+						}
+						else
+							SIGN = 1;
+					
+						if(params.NEAR > 0)
+						{
+							// error quantization
+							if(Errval>0)
+								Errval = (Errval + params.NEAR)/(2*params.NEAR + 1);
+							else
+								Errval = -(params.NEAR - Errval)/(2*params.NEAR + 1);
+
+							// reconstructed value computation
+							Rx = Px + SIGN*Errval*(2*params.NEAR + 1);
+							if(Rx<0)
+								Rx = 0;
+							else if(Rx>params.MAXVAL)
+								Rx = params.MAXVAL;
+							im_data->image[comp][row][col] = Rx;
+						}
+		
+						// modulo reduction of the error
+						if(Errval<0)
+							Errval = Errval + RANGE;
+						if(Errval>=((RANGE + 1)/2))
+							Errval = Errval - RANGE;
+
+						// computation of the auxiliary variable TEMP
+						if(RItype == 0)
+							TEMP = A[365];
+						else
+							TEMP = A[366] + (N[366]>>1);
+
+						// Golomb coding variable computation
+						Q = RItype + 365;
+						for(k=0;(N[Q]<<k)<TEMP;k++);
+
+						// computation of map for Errval mapping
+						if((k==0)&&(Errval>0)&&(2*Nn[Q-365]<N[Q]))
+							map = 1;
+						else if((Errval<0)&&(2*Nn[Q-365]>=N[Q]))
+							map = 1;
+						else if((Errval<0)&&(k!=0))
+							map = 1;
+						else
+							map = 0;
+			
+						// Errval mapping for run interruption sample
+						EMErrval = 2*abs(Errval) - RItype - map;
+
+						// limited length Golomb encoding
+						limited_length_Golomb_encode(EMErrval, k, LIMIT - J[RUNindex_val] - 1, qbpp);
+
+						// update of variables for run interruption sample
+						if(Errval<0)
+							Nn[Q-365] = Nn[Q-365] + 1;
+						A[Q] = A[Q] + ((EMErrval + 1 + RItype)>>1);
+						if(N[Q] == params.RESET)
+						{
+							A[Q] = A[Q]>>1;
+							N[Q] = N[Q]>>1;
+							Nn[Q-365] = Nn[Q-365]>>1;
 						}
 					}
-
-					/* A.7.1.2 Run-length coding */
-
-					while(RUNcnt >= (1<<J[RUNindex]))
+					else	// decoding
 					{
-						append_bit(1);
-						RUNcnt -= (1<<J[RUNindex]);
-						if(RUNindex<31)
-							RUNindex += 1;
-					}
-
-					RUNindex_val = RUNindex;
-
-					if(abs(Ix - RUNval) > params.NEAR)
-					{
-						append_bit(0);
-						append_bits(RUNcnt,J[RUNindex]);
-						if(RUNindex > 0)
-							RUNindex -= 1;
-					}
-					else if(RUNcnt>0)
-						append_bit(1);
-
-					/* A.7.2 Run interruption sample encoding */
-
-					// index computation
-					if(abs(Ra - Rb) <= params.NEAR)
-						RItype = 1;
-					else
-						RItype = 0;
-	
-					// prediction error for a run interruption sample
-					if(RItype == 1)
-						Px = Ra;
-					else
-						Px = Rb;
-					Errval = Ix - Px;
-
-					// error computation for a run interruption sample
-					if((RItype == 0) && (Ra > Rb))
-					{
-						Errval = -Errval;
-						SIGN = -1;
-					}
-					else
-						SIGN = 1;
-					
-					if(params.NEAR > 0)
-					{
-						// error quantization
-						if(Errval>0)
-							Errval = (Errval + params.NEAR)/(2*params.NEAR + 1);
+						if( read_bit()==1)
+						{
+							;
+						}
 						else
-							Errval = -(params.NEAR - Errval)/(2*params.NEAR + 1);
-
-						// reconstructed value computation
-						Rx = Px + SIGN*Errval*(2*params.NEAR + 1);
-						if(Rx<0)
-							Rx = 0;
-						else if(Rx>params.MAXVAL)
-							Rx = params.MAXVAL;
-						im_data->image[comp][row][col] = Rx;
-					}
-		
-					// modulo reduction of the error
-					if(Errval<0)
-						Errval = Errval + RANGE;
-					if(Errval>=((RANGE + 1)/2))
-						Errval = Errval - RANGE;
-
-					// computation of the auxiliary variable TEMP
-					if(RItype == 0)
-						TEMP = A[365];
-					else
-						TEMP = A[366] + (N[366]>>1);
-
-					// Golomb coding variable computation
-					Q = RItype + 365;
-					for(k=0;(N[Q]<<k)<TEMP;k++);
-
-					// computation of map for Errval mapping
-					if((k==0)&&(Errval>0)&&(2*Nn[Q-365]<N[Q]))
-						map = 1;
-					else if((Errval<0)&&(2*Nn[Q-365]>=N[Q]))
-						map = 1;
-					else if((Errval<0)&&(k!=0))
-						map = 1;
-					else
-						map = 0;
-			
-					// Errval mapping for run interruption sample
-					EMErrval = 2*abs(Errval) - RItype - map;
-
-					// limited length Golomb encoding
-					limited_length_Golomb_encode(EMErrval, k, LIMIT - J[RUNindex_val] - 1, qbpp);
-
-					// update of variables for run interruption sample
-					if(Errval<0)
-						Nn[Q-365] = Nn[Q-365] + 1;
-					A[Q] = A[Q] + ((EMErrval + 1 + RItype)>>1);
-					if(N[Q] == params.RESET)
-					{
-						A[Q] = A[Q]>>1;
-						N[Q] = N[Q]>>1;
-						Nn[Q-365] = Nn[Q-365]>>1;
+						{
+							;
+						}
 					}
 				}
 			}
