@@ -122,7 +122,7 @@ void write_header(params_struct params, image_data* im_data)
 	{
 		append_bits(comp+1, 8);			// Component ID
 		append_bits(0x11, 8);			// Sub-sampling H=1 V=1
-		append_bits(0x0, 0);			// Tq	
+		append_bits(0x0, 8);			// Tq	
 	}
 
 	append_bits(0xffda, 16);			// Start Of Scan (SOS) marker
