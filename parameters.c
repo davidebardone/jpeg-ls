@@ -28,9 +28,9 @@ void usage(int exit_type)
 	exit(exit_type);
 }
 
-params_struct coding_parameters(int argc, char* argv[])
+parameters coding_parameters(int argc, char* argv[])
 {
-	params_struct params;
+	parameters params;
 	params.verbose = false;
 	params.NEAR = 0;
 	params.RESET = 64;

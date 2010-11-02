@@ -22,6 +22,7 @@
 #include <math.h>
 #include "type_defs.h"
 #include "parameters.h"
+#include "codingvars.h"
 #include "pnm.h"
 #include "golomb.h"
 #include "bitstream.h"
@@ -35,59 +36,10 @@ static inline int32 CLAMP(int32 a,int32 b,int32 c){ return (a > c || a < b) ? b 
 int main(int argc, char* argv[])
 {
 
-	params_struct params;
+	parameters params;
+	codingvars vars;	
 	image_data* im_data = NULL;
-
-	bool RunModeProcessing;		// Regular/Run mode processing flag
-	uint16 RANGE;			// range of prediction error representation
-	uint8 bpp;			// number of bits needed to represent MAXVAL
-	uint8 qbpp;			// number of bits needed to represent a mapped error value
-	uint8 LIMIT;			// max length in bits of Golomb codewords in regular mode
-
-	uint16 i;
-	uint16 comp, row, col;
-
-	int32 N[CONTEXTS + 2];		// occurrences counters for each context
-	uint32 A[CONTEXTS + 2];		// prediction error magnitudes accumulator
-	int32 B[CONTEXTS];		// bias values
-	int32 C[CONTEXTS];		// prediction correction values
-	uint8 RUNindex = 0;		// index for run mode order
-	uint8 RUNindex_val;	
-	uint16 RUNval;			// repetitive reconstructed sample value in a run
-	uint16 RUNcnt;			// repetetive sample count for run mode
-	uint32 TEMP;			// auxiliary variable for Golomb variable calculation in run interruption coding
-	uint8 map;			// auxiliary variable for error mapping at run interruption
-	uint8 RItype;			// index for run interruption coding
 	
-	uint8 J[] = {0,0,0,0,1,1,1,1,2,2,2,2,3,3,3,3,4,4,5,5,6,6,7,7,8,9,10,11,12,13,14,15};  // order of run-length codes
-	int32 Nn[2];			// counters for negative prediction error for run interruption
-
-	uint32 A_init_value;
-
-	uint16 Ra, Rb, Rc, Rd, prevRa=0, Ix;	// pixels used in the causal template
-	int32 Rx;				// reconstructed value of the current sample
-	int32 Px;				// predicted value for the current sample
-	int32 Errval;				// prediction error
-	uint32 MErrval;				// Errval mapped to a non-negative integer
-	uint32 EMErrval;			// Errval mapped to non-negative integers in run interruption mode 
-
-	int32 D1, D2, D3;			// local gradients
-	int8 Q1, Q2, Q3;			// region numbers to quantize local gradients
-	uint16 Q;				// context
-	int8 SIGN;				// sign of the current context
-
-	uint8 k;				// Golomb coding variable
-
-	int32 MAX_C=127;			// maximum allowed value for C[0..364]
-	int32 MIN_C=-128;			// minimum allowed value for C[0..364]
-
-	uint16 BASIC_T1 = 3;			// basic default values for gradient quantization thresholds
-	uint16 BASIC_T2 = 7;
-	uint16 BASIC_T3 = 21;
-
-	uint16 FACTOR;
-
-
 	// parsing command line parameters and/or JPEG-LS header
 	params = coding_parameters(argc, argv);
 
@@ -109,21 +61,21 @@ int main(int argc, char* argv[])
 			if(params.MAXVAL>=128)
 			{
 				FACTOR = floor((float64)(min(params.MAXVAL,4095)+128)/256);
-				params.T1 = CLAMP(FACTOR*(BASIC_T1-2)+2+3*params.NEAR,params.NEAR+1,params.MAXVAL);
-				params.T2 = CLAMP(FACTOR*(BASIC_T2-3)+3+5*params.NEAR,params.T1,params.MAXVAL);
-				params.T3 = CLAMP(FACTOR*(BASIC_T3-4)+4+7*params.NEAR,params.T2,params.MAXVAL);
+				params.T1 = CLAMP(FACTOR*(vars.BASIC_T1-2)+2+3*params.NEAR,params.NEAR+1,params.MAXVAL);
+				params.T2 = CLAMP(FACTOR*(vars.BASIC_T2-3)+3+5*params.NEAR,params.T1,params.MAXVAL);
+				params.T3 = CLAMP(FACTOR*(vars.BASIC_T3-4)+4+7*params.NEAR,params.T2,params.MAXVAL);
 			}
 			else
 			{
 				FACTOR = floor( 256.0/(params.MAXVAL + 1) );
-				params.T1 = CLAMP(max(2,floor((float64)BASIC_T1/FACTOR)+3*params.NEAR),params.NEAR+1,params.MAXVAL);
-				params.T2 = CLAMP(max(2,floor((float64)BASIC_T2/FACTOR)+5*params.NEAR),params.T1,params.MAXVAL);
-				params.T3 = CLAMP(max(2,floor((float64)BASIC_T3/FACTOR)+7*params.NEAR),params.T2,params.MAXVAL);
+				params.T1 = CLAMP(max(2,floor((float64)vars.BASIC_T1/FACTOR)+3*params.NEAR),params.NEAR+1,params.MAXVAL);
+				params.T2 = CLAMP(max(2,floor((float64)vars.BASIC_T2/FACTOR)+5*params.NEAR),params.T1,params.MAXVAL);
+				params.T3 = CLAMP(max(2,floor((float64)vars.BASIC_T3/FACTOR)+7*params.NEAR),params.T2,params.MAXVAL);
 			}
 		}
 		if(params.verbose)
 		{
-				fprintf(stdout,	"Encoding %s:\n\twidth\t\t%d\n\theight\t\t%d\n\tcomponents\t%d\n",
+				fprintf(stdout,	"Encoding %s...\n\n\twidth\t\t%d\n\theight\t\t%d\n\tcomponents\t%d\n",
 				params.input_file, im_data->width, im_data->height, im_data->n_comp);
 				fprintf(stdout, "\tMAXVAL\t\t%d\n\tNEAR\t\t%d\n\tT1\t\t%d\n\tT2\t\t%d\n\tT3\t\t%d\n\tRESET\t\t%d\n",
 				params.MAXVAL, params.NEAR, params.T1, params.T2, params.T3, params.RESET);
@@ -134,6 +86,8 @@ int main(int argc, char* argv[])
 	}
 	else
 	{
+		// decoding process
+	
 		// bitstream initialization
 		init_bitstream(params.input_file, 'r');
 	}

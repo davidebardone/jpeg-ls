@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -O -Wall -ggdb
 LDFLAGS = -lm
 
-OBJS = main.o pnm.o golomb.o parameters.o bitstream.o
+OBJS = main.o pnm.o golomb.o parameters.o codingvars.c bitstream.o
 
 INCLUDES = -I.
 
@@ -37,6 +37,10 @@ parameters.o: parameters.c parameters.h type_defs.h
 	@echo 'compiling parameters.c ..'
 	${CC} ${CFLAGS} ${INCLUDES} -c parameters.c -o parameters.o
 	@echo -e '..done.\n'
+
+codingvars.o: codingvars.c codingvars.h type_defs.h
+	@echo 'compiling codingvars.c ..'
+	${CC} ${CFLAGS} ${INCLUDES} -c codingvars.c -o codingvars.o
 
 install: jpegls
 	install -m 755 editor /usr/local/bin/jpegls

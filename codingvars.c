@@ -16,28 +16,33 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 \*************************************************************************/
 
-#ifndef __PARAMETERS_H__
-#define __PARAMETERS_H__
-
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
 #include "type_defs.h"
 
-#define MAX_FILENAME_LEN	100
+void init_codingvars(codingvars vars)
+{
+	/* A.2 Initializations and conventions */
 
-struct parameters{
-	char input_file[MAX_FILENAME_LEN];	// input filename
-	char output_file[MAX_FILENAME_LEN];	// output filename
-	bool decoding_flag;			// encoding/decoding flag
-	bool verbose;				// verbose flag
-	uint8 NEAR;				// difference bound for near lossless coding
-	uint16 MAXVAL;				// max image sample value
-	uint16 T1, T2, T3;			// thresholds for local gradients
-	bool specified_T;
-	uint16 RESET;				// threshold value at which A,B, and N are halved      
-} typedef parameters;
+	/* A.2.1 Initializations */
 
-params_struct coding_parameters(int argc, char* argv[]);
+	RANGE = floor( (float64)(params.MAXVAL + 2*params.NEAR) / (2*params.NEAR + 1) ) + 1;
+	qbpp = ceil( log2(RANGE) );
+	bpp = max( 2, log2(params.MAXVAL + 1) );
+	LIMIT = 2*( bpp + max(8,bpp) );
 
-#endif
+	A_init_value = max( 2, floor( (float64)(RANGE + 32)/64 ) );
+
+	for(i=0; i<CONTEXTS; i++)
+	{
+		A[i] = A_init_value;
+		N[i] = 1;
+		B[i] = 0;
+		C[i] = 0;
+	}
+	A[CONTEXTS] = A_init_value;
+	A[CONTEXTS+1] = A_init_value;
+	N[CONTEXTS] = 1;
+	N[CONTEXTS+1] = 1;
+	Nn[0] = 0;
+	Nn[1] = 0;
+}
+
