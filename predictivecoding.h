@@ -16,28 +16,21 @@
  * along with this program.  If not, see <http://www.gnu.org/licenses/>. *
 \*************************************************************************/
 
-#ifndef __PARAMETERS_H__
-#define __PARAMETERS_H__
+#ifndef __PREDICTIVECODING_H__
+#define __PREDICTIVECODING_H__
 
-#include <stdio.h>
-#include <stdlib.h>
-#include <string.h>
+#include <math.h>
 #include "type_defs.h"
+#include "golomb.h"
+#include "bitstream.h"
+#include "parameters.h"
+#include "codingvars.h"
 
-#define MAX_FILENAME_LEN	100
-
-struct parameters{
-	char input_file[MAX_FILENAME_LEN];	// input filename
-	char output_file[MAX_FILENAME_LEN];	// output filename
-	bool decoding_flag;			// encoding/decoding flag
-	bool verbose;				// verbose flag
-	uint8 NEAR;				// difference bound for near lossless coding
-	uint16 MAXVAL;				// max image sample value
-	uint16 T1, T2, T3;			// thresholds for local gradients
-	bool specified_T;
-	uint16 RESET;				// threshold value at which A,B, and N are halved      
-} typedef parameters;
-
-parameters coding_parameters(int argc, char* argv[]);
+void context_determination(codingvars* vars, parameters params, image_data* im_data);
+void predict_sample_value(codingvars* vars, parameters params);
+void encode_prediction_error(codingvars* vars, parameters params, image_data* im_data);
+void decode_prediction_error(codingvars* vars, parameters params);
+void encode_run(codingvars* vars, parameters params, image_data* im_data);
+void decode_run(codingvars* vars, parameters params, image_data* im_data);
 
 #endif

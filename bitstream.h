@@ -39,6 +39,6 @@ void append_bits(uint32 value, uint8 n_bits);
 
 uint8 read_bit();
 
-void write_header(params_struct params, image_data* im_data);
+void write_header(parameters params, image_data* im_data);
 
 #endif

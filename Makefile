@@ -2,7 +2,7 @@ CC = gcc
 CFLAGS = -O -Wall -ggdb
 LDFLAGS = -lm
 
-OBJS = main.o pnm.o golomb.o parameters.o codingvars.c bitstream.o
+OBJS = main.o pnm.o golomb.o parameters.o codingvars.c predictivecoding.o bitstream.o
 
 INCLUDES = -I.
 
@@ -13,7 +13,7 @@ jpegls: ${OBJS}
 	${CC} ${CFLAGS} ${LDFLAGS} -o jpegls ${INCLUDES} ${OBJS}
 	@echo -e '..done.\n'
 
-main.o: main.c pnm.h type_defs.h bitstream.h golomb.h
+main.o: main.c pnm.h type_defs.h bitstream.h golomb.h predictivecoding.h codingvars.h
 	@echo 'compiling main.c ..'
 	${CC} ${CFLAGS} ${INCLUDES} -c main.c -o main.o
 	@echo -e '..done.\n'
@@ -41,6 +41,10 @@ parameters.o: parameters.c parameters.h type_defs.h
 codingvars.o: codingvars.c codingvars.h type_defs.h
 	@echo 'compiling codingvars.c ..'
 	${CC} ${CFLAGS} ${INCLUDES} -c codingvars.c -o codingvars.o
+
+predictivecoding.o: predictivecoding.c predictivecoding.h type_defs.h golomb.h bitstream.h
+	@echo 'compiling codingvars.c ..'
+	${CC} ${CFLAGS} ${INCLUDES} -c predictivecoding.c -o predictivecoding.o
 
 install: jpegls
 	install -m 755 editor /usr/local/bin/jpegls

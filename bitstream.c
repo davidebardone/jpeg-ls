@@ -103,7 +103,7 @@ uint8 read_bit()
 	return bit;
 }
 
-void write_header(params_struct params, image_data* im_data)
+void write_header(parameters params, image_data* im_data)
 {
 	uint8 comp;
 
