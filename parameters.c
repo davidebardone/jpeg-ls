@@ -36,7 +36,9 @@ params_struct coding_parameters(int argc, char* argv[])
 	params.RESET = 64;
 	params.specified_T = false;
 	char fname[MAX_FILENAME_LEN];
-	//char current_param = ' ';
+	
+	if(argc<2)
+		usage(EXIT_FAILURE);
 
 	while(argc>1)
 	{
