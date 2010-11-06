@@ -50,8 +50,13 @@ void end_bitstream()
 	fwrite(&bs.buffer,1,1,bs.bitstream_file);
 	append_bits(0xffd9, 16);			// End Of Image (EOI) marker
 	fclose(bs.bitstream_file);
-	printf("%d\n", bs.tot_bits);
 	return;
+}
+
+void print_bpp(image_data* im_data)
+{
+	float32 bpp = 	(float32)bs.tot_bits / (im_data->height * im_data->width * im_data->n_comp);
+	fprintf(stdout, "\n%.2f bpp\n", bpp);
 }
 
 void append_bit(uint8 bit)
@@ -68,8 +73,6 @@ void append_bit(uint8 bit)
 	if (bit==1)
 		// starting from msb
 		bs.buffer = bs.buffer | w_bytemask[bs.byte_bits];
-
-	printf("%d", bit);
 
 	return;
 }
@@ -102,8 +105,6 @@ uint8 read_Byte_bit()
 	bit = (bs.buffer & w_bytemask[bs.byte_bits])>>(8-bs.byte_bits);
 	bs.byte_bits--;
 
-	//printf("%d\n", bit);
-
 	return bit;
 }
 
@@ -124,8 +125,6 @@ uint8 read_bit()
 	// msb first
 	bit = (bs.buffer & r_bytemask[bs.byte_bits])>>(bs.byte_bits-1);
 	bs.byte_bits--;
-
-	printf("%d", bit);
 
 	return bit;
 }

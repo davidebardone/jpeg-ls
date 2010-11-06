@@ -34,6 +34,7 @@ struct bitstream{
 
 void init_bitstream(char* filename, char mode);
 void end_bitstream();
+void print_bpp(image_data* im_data);
 
 void append_bit(uint8 bit);
 void append_bits(uint32 value, uint8 n_bits);

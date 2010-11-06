@@ -109,15 +109,12 @@ int main(int argc, char* argv[])
 					/* A.4 Prediction*/
 					predict_sample_value(&vars, params);
 
-					if(params.decoding_flag == false){
+					if(params.decoding_flag == false)
 						// encoding
 						encode_prediction_error(&vars, params, im_data);
-						printf("\nME %d(%d) k %d Q %d S %d Ix %d Px %d (%d %d)\n", vars.MErrval, vars.Errval, vars.k, vars.Q, vars.SIGN, vars.Ix, vars.Px, vars.row, vars.col);}
-
-					else{	
+					else	
 						// decoding
 						decode_prediction_error(&vars, params, im_data);
-						printf("\nME %d(%d) k %d Q %d S %d Ix %d Px %d (%d %d)\n", vars.MErrval, vars.Errval, vars.k, vars.Q, vars.SIGN, vars.Rx, vars.Px, vars.row, vars.col);}
 						
 					/* A.6 Update variables */
 					update_codingvars(&vars, params);
@@ -140,6 +137,8 @@ int main(int argc, char* argv[])
 
 	if(params.decoding_flag == true)
 		write_image("lena_decoded.ppm", im_data);
+	else
+		print_bpp(im_data);
 
 	return 0;
 }

@@ -129,8 +129,6 @@ void predict_sample_value(codingvars* vars, parameters params)
 			(*vars).Px = (*vars).Ra + (*vars).Rb - (*vars).Rc;
 	}
 
-	printf("%d %d\n", (*vars).Px, (*vars).C[(*vars).Q]);
-
 	/* A.4.2 Prediction correction */
 
 	(*vars).Px += ((*vars).SIGN == 1)? (*vars).C[(*vars).Q] : -(*vars).C[(*vars).Q];
@@ -192,7 +190,6 @@ void encode_prediction_error(codingvars* vars, parameters params, image_data* im
 
 	limited_length_Golomb_encode((*vars).MErrval, (*vars).k, (*vars).LIMIT, (*vars).qbpp);
 
-	//printf("%d %d\n", (*vars).MErrval, (*vars).k);
 }
 
 
