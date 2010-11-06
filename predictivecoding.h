@@ -29,7 +29,7 @@
 void context_determination(codingvars* vars, parameters params, image_data* im_data);
 void predict_sample_value(codingvars* vars, parameters params);
 void encode_prediction_error(codingvars* vars, parameters params, image_data* im_data);
-void decode_prediction_error(codingvars* vars, parameters params);
+void decode_prediction_error(codingvars* vars, parameters params, image_data* im_data);
 void encode_run(codingvars* vars, parameters params, image_data* im_data);
 void decode_run(codingvars* vars, parameters params, image_data* im_data);
 

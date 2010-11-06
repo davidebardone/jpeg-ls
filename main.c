@@ -49,35 +49,7 @@ int main(int argc, char* argv[])
 
 		// bitstream initialization
 		init_bitstream(params.output_file, 'w');
-
-		// setting parameters
 		params.MAXVAL = im_data->maxval;
-		if(params.specified_T == false)
-		{
-			/* C.2.4.1.1 Default threshold values */
-			if(params.MAXVAL>=128)
-			{
-				vars.FACTOR = floor((float64)(min(params.MAXVAL,4095)+128)/256);
-				params.T1 = CLAMP(vars.FACTOR*(vars.BASIC_T1-2)+2+3*params.NEAR,params.NEAR+1,params.MAXVAL);
-				params.T2 = CLAMP(vars.FACTOR*(vars.BASIC_T2-3)+3+5*params.NEAR,params.T1,params.MAXVAL);
-				params.T3 = CLAMP(vars.FACTOR*(vars.BASIC_T3-4)+4+7*params.NEAR,params.T2,params.MAXVAL);
-			}
-			else
-			{
-				vars.FACTOR = floor( 256.0/(params.MAXVAL + 1) );
-				params.T1 = CLAMP(max(2,floor((float64)vars.BASIC_T1/vars.FACTOR)+3*params.NEAR),params.NEAR+1,params.MAXVAL);
-				params.T2 = CLAMP(max(2,floor((float64)vars.BASIC_T2/vars.FACTOR)+5*params.NEAR),params.T1,params.MAXVAL);
-				params.T3 = CLAMP(max(2,floor((float64)vars.BASIC_T3/vars.FACTOR)+7*params.NEAR),params.T2,params.MAXVAL);
-			}
-		}
-		if(params.verbose)
-		{
-				fprintf(stdout,	"Encoding %s...\n\n\twidth\t\t%d\n\theight\t\t%d\n\tcomponents\t%d\n",
-				params.input_file, im_data->width, im_data->height, im_data->n_comp);
-				fprintf(stdout, "\tMAXVAL\t\t%d\n\tNEAR\t\t%d\n\tT1\t\t%d\n\tT2\t\t%d\n\tT3\t\t%d\n\tRESET\t\t%d\n",
-				params.MAXVAL, params.NEAR, params.T1, params.T2, params.T3, params.RESET);
-		}
-
 		write_header(params, im_data);
 
 	}
@@ -87,8 +59,36 @@ int main(int argc, char* argv[])
 
 		// bitstream initialization
 		init_bitstream(params.input_file, 'r');
+		im_data = read_header(&params);
+		allocate_image(im_data);
 	}
 
+	// setting parameters
+	if(params.specified_T == false)
+	{
+		/* C.2.4.1.1 Default threshold values */
+		if(params.MAXVAL>=128)
+		{
+			vars.FACTOR = floor((float64)(min(params.MAXVAL,4095)+128)/256);
+			params.T1 = CLAMP(vars.FACTOR*(vars.BASIC_T1-2)+2+3*params.NEAR,params.NEAR+1,params.MAXVAL);
+			params.T2 = CLAMP(vars.FACTOR*(vars.BASIC_T2-3)+3+5*params.NEAR,params.T1,params.MAXVAL);
+			params.T3 = CLAMP(vars.FACTOR*(vars.BASIC_T3-4)+4+7*params.NEAR,params.T2,params.MAXVAL);
+		}
+		else
+		{
+			vars.FACTOR = floor( 256.0/(params.MAXVAL + 1) );
+			params.T1 = CLAMP(max(2,floor((float64)vars.BASIC_T1/vars.FACTOR)+3*params.NEAR),params.NEAR+1,params.MAXVAL);
+			params.T2 = CLAMP(max(2,floor((float64)vars.BASIC_T2/vars.FACTOR)+5*params.NEAR),params.T1,params.MAXVAL);
+			params.T3 = CLAMP(max(2,floor((float64)vars.BASIC_T3/vars.FACTOR)+7*params.NEAR),params.T2,params.MAXVAL);
+		}
+	}
+	if(params.verbose)
+	{
+		fprintf(stdout,	"Encoding %s...\n\n\twidth\t\t%d\n\theight\t\t%d\n\tcomponents\t%d\n",
+		params.input_file, im_data->width, im_data->height, im_data->n_comp);
+		fprintf(stdout, "\tMAXVAL\t\t%d\n\tNEAR\t\t%d\n\tT1\t\t%d\n\tT2\t\t%d\n\tT3\t\t%d\n\tRESET\t\t%d\n",
+		params.MAXVAL, params.NEAR, params.T1, params.T2, params.T3, params.RESET);
+	}
 
 
 	/* A.2 Initializations and conventions */
@@ -98,7 +98,6 @@ int main(int argc, char* argv[])
 		for(vars.row=0; vars.row<im_data->height; vars.row++)
 			for(vars.col=0; vars.col<im_data->width; vars.col++)
 			{
-
 				/* A.3 Context determination */
 
 				context_determination(&vars, params, im_data);
@@ -108,26 +107,25 @@ int main(int argc, char* argv[])
 					// regular mode
 
 					/* A.4 Prediction*/
-
 					predict_sample_value(&vars, params);
 
-					if(params.decoding_flag == false) 
+					if(params.decoding_flag == false){
 						// encoding
 						encode_prediction_error(&vars, params, im_data);
+						printf("\nME %d(%d) k %d Q %d S %d Ix %d Px %d (%d %d)\n", vars.MErrval, vars.Errval, vars.k, vars.Q, vars.SIGN, vars.Ix, vars.Px, vars.row, vars.col);}
 
-					else	
+					else{	
 						// decoding
-						decode_prediction_error(&vars, params);
+						decode_prediction_error(&vars, params, im_data);
+						printf("\nME %d(%d) k %d Q %d S %d Ix %d Px %d (%d %d)\n", vars.MErrval, vars.Errval, vars.k, vars.Q, vars.SIGN, vars.Rx, vars.Px, vars.row, vars.col);}
 						
 					/* A.6 Update variables */
-
 					update_codingvars(&vars, params);
 
 				}
 				else	
 				{
 					// run mode
-
 					if(params.decoding_flag == false)
 						// encoding			
 						encode_run(&vars, params, im_data);
@@ -139,7 +137,9 @@ int main(int argc, char* argv[])
 			}
 
 	end_bitstream();
-	//write_image("lena_decoded.ppm", im_data);
+
+	if(params.decoding_flag == true)
+		write_image("lena_decoded.ppm", im_data);
 
 	return 0;
 }

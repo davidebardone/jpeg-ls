@@ -37,6 +37,8 @@ struct image_data{
 } typedef image_data;
 
 image_data* load_image(char* image_name);
-void write_image(char* image_name, image_data* im_data); 
+image_data*  allocate_image_data();
+void allocate_image(image_data* im_data); 
+void write_image(char* image_name, image_data* im_data);
 
 #endif

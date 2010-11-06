@@ -35,7 +35,8 @@ struct parameters{
 	uint16 MAXVAL;				// max image sample value
 	uint16 T1, T2, T3;			// thresholds for local gradients
 	bool specified_T;
-	uint16 RESET;				// threshold value at which A,B, and N are halved      
+	uint16 RESET;				// threshold value at which A,B, and N are halved
+	uint8 ILV;				// interleave     
 } typedef parameters;
 
 parameters coding_parameters(int argc, char* argv[]);

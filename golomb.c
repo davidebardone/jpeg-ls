@@ -59,7 +59,7 @@ void limited_length_Golomb_encode(uint32 MErrval, uint8 k, uint8 LIMIT, uint8 qb
 		//binary part
 		while(qbpp>0)
 		{
-			append_bit(((MErrval-1)>>qbpp)&0x1);
+			append_bit(((MErrval-1)>>(qbpp-1))&0x1);
 			qbpp--;		
 		}
 	}
@@ -71,7 +71,7 @@ void limited_length_Golomb_encode(uint32 MErrval, uint8 k, uint8 LIMIT, uint8 qb
 uint32 limited_length_Golomb_decode(uint8 k, uint8 LIMIT, uint8 qbpp)
 {
 	
-	uint32 MErrval;
+	uint32 MErrval = 0;
 	uint8 lim = LIMIT-qbpp-1;
 
 	while(read_bit()==0)
@@ -87,6 +87,7 @@ uint32 limited_length_Golomb_decode(uint8 k, uint8 LIMIT, uint8 qbpp)
 	}
 	else
 	{
+		MErrval = 0;
 		while(qbpp>0)
 		{
 			MErrval = (MErrval<<1)|read_bit();

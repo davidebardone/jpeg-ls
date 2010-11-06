@@ -54,6 +54,8 @@ void context_determination(codingvars* vars, parameters params, image_data* im_d
 	else
 		(*vars).RunModeProcessing = false;
 
+(*vars).RunModeProcessing = false;
+
 	if(!(*vars).RunModeProcessing)	// regular mode
 	{
 		/* A.3.3 Local gradients quantization */
@@ -127,6 +129,8 @@ void predict_sample_value(codingvars* vars, parameters params)
 			(*vars).Px = (*vars).Ra + (*vars).Rb - (*vars).Rc;
 	}
 
+	printf("%d %d\n", (*vars).Px, (*vars).C[(*vars).Q]);
+
 	/* A.4.2 Prediction correction */
 
 	(*vars).Px += ((*vars).SIGN == 1)? (*vars).C[(*vars).Q] : -(*vars).C[(*vars).Q];
@@ -188,12 +192,15 @@ void encode_prediction_error(codingvars* vars, parameters params, image_data* im
 
 	limited_length_Golomb_encode((*vars).MErrval, (*vars).k, (*vars).LIMIT, (*vars).qbpp);
 
+	//printf("%d %d\n", (*vars).MErrval, (*vars).k);
 }
 
 
-void decode_prediction_error(codingvars* vars, parameters params)
+void decode_prediction_error(codingvars* vars, parameters params, image_data* im_data)
 {
 	/* A.5.1 Golomb coding variable computation */
+
+	int32 ErrvalAfterMR;
 
 	for((*vars).k=0;((*vars).N[(*vars).Q]<<(*vars).k)<(*vars).A[(*vars).Q];(*vars).k++);
 
@@ -205,16 +212,18 @@ void decode_prediction_error(codingvars* vars, parameters params)
 
 	if((params.NEAR==0)&&((*vars).k==0)&&(2*(*vars).B[(*vars).Q]<=-(*vars).N[(*vars).Q]))
 		if((*vars).MErrval%2==0)
-			(*vars).Errval = -((*vars).MErrval / 2) - 1;
+			(*vars).Errval = -((int32)(*vars).MErrval / 2) - 1;
 		else
-			(*vars).Errval = ((*vars).MErrval - 1) / 2;
+			(*vars).Errval = ((int32)(*vars).MErrval - 1) / 2;
 	else
 		if((*vars).MErrval%2==0)
-			(*vars).Errval = (*vars).MErrval / 2;
+			(*vars).Errval = (int32)(*vars).MErrval / 2;
 		else
-			(*vars).Errval = -((*vars).MErrval + 1) / 2;
+			(*vars).Errval = -((int32)(*vars).MErrval + 1) / 2;
 
-	(*vars).Errval = (*vars).Errval * (2*params.NEAR + 1);
+	ErrvalAfterMR = (*vars).Errval;	
+
+	(*vars).Errval = (*vars).Errval * (int32)(2*params.NEAR + 1);
 
 	if((*vars).SIGN==-1)
 		(*vars).Errval = -(*vars).Errval;
@@ -230,6 +239,9 @@ void decode_prediction_error(codingvars* vars, parameters params)
 		(*vars).Rx = 0;
 	else if( (*vars).Rx>params.MAXVAL)
 		(*vars).Rx = params.MAXVAL;
+	
+	im_data->image[(*vars).comp][(*vars).row][(*vars).col] = (*vars).Rx;
+	(*vars).Errval = ErrvalAfterMR;
 
 }
 

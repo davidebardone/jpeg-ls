@@ -190,6 +190,50 @@ image_data* load_image(char* image_name)
 }
 
 
+image_data* allocate_image_data()
+{
+	image_data* im_data = (image_data*)malloc(sizeof(image_data));
+	if(im_data==NULL)
+	{
+                fprintf(stderr, "Error in memory allocation\n");
+		exit(EXIT_FAILURE);
+        }
+	return im_data;
+}
+
+
+void allocate_image(image_data* im_data)
+{	
+	uint8 c;
+	uint16 row;	
+
+	im_data->image = (uint16***)malloc(im_data->n_comp*sizeof(uint16**));
+	if(im_data->image==NULL)
+	{
+		fprintf(stderr, "Error in memory allocation\n");
+		exit(EXIT_FAILURE);	
+	}
+
+	for(c=0; c<im_data->n_comp; c++)
+	{
+		im_data->image[c] = (uint16**)malloc(im_data->height*sizeof(uint16*));
+		if(im_data->image[c]==NULL)
+		{
+                	fprintf(stderr, "Error in memory allocation\n");
+			exit(EXIT_FAILURE);        
+        	}
+		for(row=0; row<im_data->height; row++)
+		{
+			im_data->image[c][row] = (uint16*)malloc(im_data->width*sizeof(uint16));
+			if(im_data->image[c][row]==NULL)
+			{
+                		fprintf(stderr, "Error in memory allocation\n");
+				exit(EXIT_FAILURE);        
+        		}
+		}
+	}
+}
+
 void write_image(char* image_name, image_data* im_data)
 {
 	FILE* fp;

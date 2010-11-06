@@ -20,6 +20,7 @@
 #define __BITSTREAM_H__
 
 #include <stdio.h>
+#include <stdlib.h>
 #include "type_defs.h"
 #include "parameters.h"
 #include "pnm.h"
@@ -40,5 +41,6 @@ void append_bits(uint32 value, uint8 n_bits);
 uint8 read_bit();
 
 void write_header(parameters params, image_data* im_data);
+image_data* read_header(parameters* params);
 
 #endif
